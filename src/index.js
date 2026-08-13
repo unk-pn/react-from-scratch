@@ -1,12 +1,5 @@
 import MyReact from './MyReact';
 
-// const element = MyReact.createElement(
-//   "div",
-//   { id: "foo" },
-//   React.createElement("a", null, "bar"),
-//   React.createElement("b")
-// )
-
 /** @jsx MyReact.createElement */
 const element = (
   <div id="foo">
@@ -16,4 +9,4 @@ const element = (
 )
 
 const container = document.getElementById('root')
-ReactDOM.render(element, container)
+MyReact.render(element, container)
