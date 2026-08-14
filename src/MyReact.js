@@ -16,6 +16,16 @@ const ElementTypes = {
 }
 
 /**
+ * @typedef {Object} Fiber
+ * @property {string | Function} type
+ * @property {Object} props
+ * @property {Fiber | null} parent
+ * @property {Fiber | null} child
+ * @property {Fiber | null} sibling
+ * @property {HTMLElement | Text | null} dom
+ */
+
+/**
  * Creates a React-like element Object
  * 
  * @param {string | function} type - HTML tag name or component type
@@ -54,6 +64,27 @@ function createTextElement(text) {
 }
 
 /**
+ * Creates a DOM node
+ * 
+ * @param {MyReactElement | null | undefined} fiber 
+ * @returns {MyReactElement}  
+*/
+function createDom(fiber) {
+  const dom = fiber.type === ElementTypes.text 
+    ? document.createTextNode("") 
+    : document.createElement(fiber.type)
+
+  const isProperty = key => key !== "children"
+  Object.keys(fiber.props)
+    .filter(isProperty)
+    .forEach(name => {
+      dom[name] = fiber.props[name]
+    });
+
+  return dom
+}
+
+/**
  * Renders a React-like element into the DOM
  * 
  * @param {MyReactElement | null | undefined} element 
@@ -61,25 +92,24 @@ function createTextElement(text) {
  * @returns {void}  
 */
 function render(element, container) {
-  const dom = element.type === ElementTypes.text 
-    ? document.createTextNode("") 
-    : document.createElement(element.type)
-
-  const isProperty = key => key !== "children"
-  Object.keys(element.props)
-    .filter(isProperty)
-    .forEach(name => {
-      dom[name] = element.props[name]
-    });
-
-  element.props.children.forEach(child => 
-    render(child, dom)
-  );
-
-  container.appendChild(dom)
+  nextUnitOfWork = {
+    dom: container,
+    props: {
+      children: [element]
+    }
+  }
 }
 
 let nextUnitOfWork = null
+
+/**
+ * Executes the pending render work during browser idle time.
+ * The loop keeps processing fibers until the browser says the remaining
+ * time is too low, then it schedules the next idle callback.
+ *
+ * @param {IdleDeadline} deadline - Browser-provided object with timeRemaining()
+ * @returns {void}
+ */
 function workLoop(deadline) {
   let shouldYield = false
   while (nextUnitOfWork && !shouldYield) {
@@ -91,6 +121,55 @@ function workLoop(deadline) {
 
 requestIdleCallback(workLoop)
 
-function performUnitOfWork(nextUnitOfWork) {
-  // TODO
+/**
+ * Processes a single fiber and returns the next fiber to continue traversal.
+ * The function creates the DOM node for the current fiber, attaches it to
+ * the parent, and links child/sibling fibers into a tree.
+ *
+ * @param {Fiber} fiber - The current fiber to work on.
+ * @returns {Fiber | null} The next fiber that should be processed, or null if done.
+ */
+function performUnitOfWork(fiber) {
+  // Create new node and append it to the DOM
+  if (!fiber.dom)
+    fiber.dom = createDom(fiber)
+
+  if (fiber.parent)
+    fiber.parent.dom.appendChild(fiber.dom)
+
+  // Create a child for every new fiber
+  const elements = fiber.props.children
+  let index = 0
+  let prevSibling = null
+
+  while (index < elements.length) {
+    const element = elements[index]
+
+    const newFiber = {
+      type: element.type,
+      props: element.props,
+      parent: fiber,
+      dom: null,
+    }
+
+    // Add to fiber tree
+    if (index === 0) {
+      fiber.child = newFiber
+    } else {
+      prevSibling.sibling = newFiber
+    }
+
+    prevSibling = newFiber
+    index++
+  }
+
+  if (fiber.child) return fiber.child 
+
+  let nextFiber = fiber
+  while (nextFiber) {
+    if (nextFiber.sibling)
+      return nextFiber.sibling
+
+    nextFiber = nextFiber.parent
+  }
 }
