@@ -1,9 +1,10 @@
-/**
- * @typedef {Object} MyReactElement
- * @property {string | Function} type
- * @property {Object} props
- * @property {Array<MyReactElement | string | number | null | undefined>} [props.children]
-*/
+import { EffectTags, ElementTypes } from "./constants"
+import { 
+  isEvent,
+  isProperty,
+  isNew,
+  isGone
+} from "./helpers"
 
 const MyReact = {
   createElement,
@@ -11,28 +12,6 @@ const MyReact = {
 }
 export default MyReact
 
-const ElementTypes = {
-  text: "TEXT_ELEMENT",
-}
-
-/**
- * @typedef {Object} Fiber
- * @property {string | Function} type
- * @property {Object} props
- * @property {Fiber | null} parent
- * @property {Fiber | null} child
- * @property {Fiber | null} sibling
- * @property {HTMLElement | Text | null} dom
- */
-
-/**
- * Creates a React-like element Object
- * 
- * @param {string | function} type - HTML tag name or component type
- * @param {object} [props] - Element props
- * @param {...(MyReactElement | string | number | null | undefined)} children
- * @returns {MyReactElement}
-*/
 function createElement(type, props, ...children) {
   return {
     type,
@@ -47,12 +26,6 @@ function createElement(type, props, ...children) {
   }
 }
 
-/**
- * Wraps a text into a React-like element object
- * 
- * @param {string | number} text 
- * @returns {MyReactElement}
-*/
 function createTextElement(text) {
   return {
     type: ElementTypes.text,
@@ -63,105 +36,123 @@ function createTextElement(text) {
   }
 }
 
-/**
- * Creates a DOM node
- * 
- * @param {MyReactElement | null | undefined} fiber 
- * @returns {MyReactElement}  
-*/
 function createDom(fiber) {
   const dom = fiber.type === ElementTypes.text 
     ? document.createTextNode("") 
     : document.createElement(fiber.type)
 
-  const isProperty = key => key !== "children"
-  Object.keys(fiber.props)
-    .filter(isProperty)
-    .forEach(name => {
-      dom[name] = fiber.props[name]
-    });
+  updateDom(dom, {}, fiber.props)
 
   return dom
 }
 
-/**
- * Renders a React-like element into the DOM
- * 
- * @param {MyReactElement | null | undefined} element 
- * @param {HTMLElement} container 
- * @returns {void}  
-*/
+function updateDom(dom, prevProps, nextProps) {
+  // Remove old / changed event listeners
+  Object.keys(prevProps)
+    .filter(isEvent)
+    .filter(key => !(key in nextProps) || isNew(prevProps, nextProps)(key))
+    .forEach(name => {
+      const eventType = name.toLowerCase().substring(2)
+
+      dom.removeEventListener(eventType, prevProps[name])
+    })
+  
+  // Remove old props
+  Object.keys(prevProps)
+    .filter(isProperty)
+    .filter(isGone(prevProps, nextProps))
+    .forEach(name => {
+      dom[name] = ""
+    })
+
+  // Set new / changed props
+  Object.keys(nextProps)
+    .filter(isProperty)
+    .filter(isNew(prevProps, nextProps))
+    .forEach(name => {
+      dom[name] = nextProps[name]
+    })
+
+  // Set new event listeners
+  Object.keys(nextProps)
+    .filter(isEvent)
+    .filter(isNew(prevProps, nextProps))
+    .forEach(name => {
+      const eventType = name.toLowerCase().substring(2)
+
+      dom.addEventListener(eventType, nextProps[name])
+    })
+}
+
+function commitRoot() {
+  deletions.forEach(commitWork)
+  commitWork(wipRoot.child)
+  currentRoot = wipRoot
+  wipRoot = null
+}
+
+function commitWork(fiber) {
+  if (!fiber || !fiber.parent || !fiber.parent.dom) return
+
+  const domParent = fiber.parent.dom
+
+  if (fiber.dom !== null) {
+    switch (fiber.effectTag) {
+      case EffectTags.place:
+        domParent.appendChild(fiber.dom)
+        break
+
+      case EffectTags.update:
+          updateDom(fiber.dom, fiber.alternate.props, fiber.props)
+          break
+
+      case EffectTags.delete:
+          domParent.removeChild(fiber.dom)
+          break
+    }
+  }
+
+  commitWork(fiber.child)
+  commitWork(fiber.sibling)
+}
+
 function render(element, container) {
-  nextUnitOfWork = {
+  wipRoot = {
     dom: container,
     props: {
       children: [element]
-    }
+    },
+    alternate: currentRoot,
   }
+
+  deletions = []
+  nextUnitOfWork = wipRoot
 }
 
 let nextUnitOfWork = null
+let currentRoot = null
+let wipRoot = null
+let deletions = null
 
-/**
- * Executes the pending render work during browser idle time.
- * The loop keeps processing fibers until the browser says the remaining
- * time is too low, then it schedules the next idle callback.
- *
- * @param {IdleDeadline} deadline - Browser-provided object with timeRemaining()
- * @returns {void}
- */
 function workLoop(deadline) {
   let shouldYield = false
   while (nextUnitOfWork && !shouldYield) {
     nextUnitOfWork = performUnitOfWork(nextUnitOfWork)
     shouldYield = deadline.timeRemaining < 1
   }
+
+  if (!nextUnitOfWork && wipRoot) commitRoot()
+
   requestIdleCallback(workLoop)
 }
-
 requestIdleCallback(workLoop)
 
-/**
- * Processes a single fiber and returns the next fiber to continue traversal.
- * The function creates the DOM node for the current fiber, attaches it to
- * the parent, and links child/sibling fibers into a tree.
- *
- * @param {Fiber} fiber - The current fiber to work on.
- * @returns {Fiber | null} The next fiber that should be processed, or null if done.
- */
 function performUnitOfWork(fiber) {
-  // Create new node and append it to the DOM
   if (!fiber.dom)
     fiber.dom = createDom(fiber)
 
-  if (fiber.parent)
-    fiber.parent.dom.appendChild(fiber.dom)
-
-  // Create a child for every new fiber
   const elements = fiber.props.children
-  let index = 0
-  let prevSibling = null
-
-  while (index < elements.length) {
-    const element = elements[index]
-
-    const newFiber = {
-      type: element.type,
-      props: element.props,
-      parent: fiber,
-      dom: null,
-    }
-
-    // Add to fiber tree
-    if (index === 0) {
-      fiber.child = newFiber
-    } else {
-      prevSibling.sibling = newFiber
-    }
-
-    prevSibling = newFiber
-    index++
-  }
+  reconcileChildren(fiber, elements)
 
   if (fiber.child) return fiber.child 
 
@@ -171,5 +162,58 @@ function performUnitOfWork(fiber) {
       return nextFiber.sibling
 
     nextFiber = nextFiber.parent
+  }
+}
+
+function reconcileChildren(wipFiber, elements) {
+  let index = 0
+  let oldFiber = wipFiber.alternate && wipFiber.alternate.child
+  let prevSibling = null
+
+  while (index < elements.length || oldFiber != null) {
+    const element = elements[index]
+    let newFiber = null
+
+    const sameType = oldFiber && element && element.type === oldFiber.type
+
+    if (sameType) {
+      newFiber = {
+        type: oldFiber.type,
+        props: element.props,
+        parent: wipFiber,
+        dom: oldFiber.dom,
+        alternate: oldFiber,
+        effectTag: EffectTags.update,
+      }
+    }
+
+    if (element && !sameType) {
+      newFiber = {
+        type: element.type,
+        props: element.props,
+        parent: wipFiber,
+        dom: null,
+        alternate: null,
+        effectTag: EffectTags.place,
+      }
+    }
+
+    if (oldFiber && !sameType) {
+      oldFiber.effectTag = EffectTags.delete
+      deletions.push(oldFiber)
+    }
+
+    if (oldFiber) {
+      oldFiber = oldFiber.sibling
+    }
+
+    if (index === 0) {
+      wipFiber.child = newFiber
+    } else {
+      prevSibling.sibling = newFiber
+    }
+
+    prevSibling = newFiber
+    index++
   }
 }

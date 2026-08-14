@@ -1,12 +1,18 @@
 import MyReact from './MyReact';
 
-/** @jsx MyReact.createElement */
-const element = (
-  <div id="foo">
-    <a>bar</a>
-    <b />
-  </div>
-)
+const updateValue = (e) => rerender(e.target.value)
 
+/** @jsx MyReact.createElement */
 const container = document.getElementById('root')
-MyReact.render(element, container)
+
+const rerender = (value) => {
+  const element = (
+    <div id="foo">
+      <input onInput={updateValue} value={value} />
+      <h2>Value: {value}</h2>
+    </div>
+  )
+  MyReact.render(element, container)
+}
+
+rerender("")
