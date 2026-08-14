@@ -2,22 +2,73 @@ import MyReact from './MyReact';
 
 /** @jsx MyReact.createElement */
 function App(props) {
-  const [count, setCount] = MyReact.useState(0)
-
+  const [tab, setTab] = MyReact.useState("counter")
+  
   return (
     <div id="foo">
-      <h1>Hello from the functional component</h1>
-      <div>
-        <p>Props: {props.name} </p>
-      </div>
+      <h1>Hello from the <b>MyReact</b> functional component!</h1>
 
-      <div>
-        <h1>Count: {count}</h1>
-        <button onClick={() => setCount(c => c + 1)}>Increment</button>
-      </div>
+      <h2>Current Tab: {tab}</h2>
+      <button onClick={() => setTab("counter")}>Counter</button>
+      <button onClick={() => setTab("todos")}>Todos</button>
+
+      {tab === "counter" && <Counter />}
+      {tab === "todos" && <Todos />}
     </div>
   )
 }
-const element = <App name="foo" />
+
+function Counter() {
+  const [count, setCount] = MyReact.useState(0)
+
+  MyReact.useEffect(() => {
+    console.log('Effect ran with count: ', count)
+
+    return () => {
+      console.log('Cleanup ran with count: ', count)
+    }
+  }, [count])
+
+  return (
+    <div>
+      <h1>Count: {count}</h1>
+      <button onClick={() => setCount(c => c + 1)}>Increment</button>
+    </div>
+  )
+}
+
+function Todos() {
+  const [todos, setTodos] = MyReact.useState([])
+
+  MyReact.useEffect(() => {
+    fetch("https://jsonplaceholder.typicode.com/todos?_limit=5")
+      .then((response) => response.json())
+      .then(setTodos)
+      .catch(console.log)
+  }, [])
+
+  return (
+    <div>
+      <h1>Todos</h1>
+      {todos.map((todo) => (
+        <Todo
+          key={todo.id}
+          {...todo}
+        />
+      ))}
+    </div>
+  )
+}
+
+function Todo({ userId, completed, id, title }) {
+  return (
+    <div style={{ border: "1px solid black", margin: "5px" }}>
+      <h1>{title}</h1>
+      <p>{completed ? "Completed" : "Not completed"}</p>
+    </div>
+  )
+}
+
+const element = <App />
 const container = document.getElementById('root')
 MyReact.render(element, container)
