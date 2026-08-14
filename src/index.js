@@ -1,18 +1,16 @@
 import MyReact from './MyReact';
 
-const updateValue = (e) => rerender(e.target.value)
-
 /** @jsx MyReact.createElement */
-const container = document.getElementById('root')
-
-const rerender = (value) => {
-  const element = (
+function App(props) {
+  return (
     <div id="foo">
-      <input onInput={updateValue} value={value} />
-      <h2>Value: {value}</h2>
+      <h1>Hello from the functional component</h1>
+      <div>
+        <p>Props: {props.name} </p>
+      </div>
     </div>
   )
-  MyReact.render(element, container)
 }
-
-rerender("")
+const element = <App name="foo" />
+const container = document.getElementById('root')
+MyReact.render(element, container)
