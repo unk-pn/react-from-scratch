@@ -9,6 +9,7 @@ import {
 const MyReact = {
   createElement,
   render,
+  useState,
 }
 export default MyReact
 
@@ -179,9 +180,49 @@ function performUnitOfWork(fiber) {
   }
 }
 
+let wipFiber = null
+let hookIdx = null
+
 function updateFunctionComponent(fiber) {
+  wipFiber = fiber
+  hookIdx = 0
+  wipFiber.hooks = []
+
   const children = [fiber.type(fiber.props)]
   reconcileChildren(fiber, children)
+}
+
+function useState(initial) {
+  const oldHook = 
+    wipFiber.alternate &&
+    wipFiber.alternate.hooks &&
+    wipFiber.alternate.hooks[hookIdx]
+  
+  const hook = {
+    state: oldHook ? oldHook.state : initial,
+    queue: []
+  }
+
+  const actions = oldHook ? oldHook.queue : []
+  actions.forEach(action => 
+    hook.state = action(hook.state)
+  )
+
+  function setState(action) {
+    hook.queue.push(action)
+    wipRoot = {
+      dom: currentRoot.dom,
+      props: currentRoot.props,
+      alternate: currentRoot
+    }
+
+    nextUnitOfWork = wipRoot
+    deletions = []
+  }
+
+  wipFiber.hooks.push(hook)
+  hookIdx++
+  return [hook.state, setState]
 }
 
 function updateHostComponent(fiber) {
