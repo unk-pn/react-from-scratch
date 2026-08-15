@@ -132,18 +132,8 @@ function commitWork(fiber) {
       break
 
     case EffectTags.delete:
-      if (fiber.hooks) {
-        fiber.hooks.forEach(hook => {
-          if (hook.cleanup) hook.cleanup()
-        })
-      }
-
-      if (!fiber.dom) {
-        commitDeletion(fiber, domParent)
-      } else {
-        domParent.removeChild(fiber.dom)
-      }
-      break
+      commitDeletion(fiber, domParent)
+      return
   }
 
   commitWork(fiber.child)
@@ -153,12 +143,15 @@ function commitWork(fiber) {
 function commitDeletion(fiber, domParent) {
   if (!fiber) return
 
+  if (fiber.hooks) {
+    fiber.hooks.forEach(hook => {
+      if (hook.cleanup) hook.cleanup()
+    })
+  }
+
   if (fiber.dom) {
     domParent.removeChild(fiber.dom)
-    return 
-  }
-  
-  if (fiber.child) {
+  } else if (fiber.child) {
     commitDeletion(fiber.child, domParent)
   }
 
