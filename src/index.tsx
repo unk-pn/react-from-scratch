@@ -1,7 +1,7 @@
 import MyReact from './MyReact';
+const React = MyReact
 
-/** @jsx MyReact.createElement */
-function App(props) {
+function App() {
   const [tab, setTab] = MyReact.useState("counter")
   
   return (
@@ -38,7 +38,7 @@ function Counter() {
 }
 
 function Todos() {
-  const [todos, setTodos] = MyReact.useState([])
+  const [todos, setTodos] = MyReact.useState<TodoProps[]>([])
 
   MyReact.useEffect(() => {
     fetch("https://jsonplaceholder.typicode.com/todos?_limit=5")
@@ -52,7 +52,7 @@ function Todos() {
       <h1>Todos</h1>
       {todos.map((todo) => (
         <Todo
-          key={todo.id}
+          // key={todo.id} ??? 
           {...todo}
         />
       ))}
@@ -60,7 +60,14 @@ function Todos() {
   )
 }
 
-function Todo({ userId, completed, id, title }) {
+interface TodoProps {
+  userId: number;
+  completed: boolean;
+  id: number;
+  title: string;
+}
+
+function Todo({ userId, completed, id, title }: TodoProps) {
   return (
     <div style={{ border: "1px solid black", margin: "5px" }}>
       <h1>{title}</h1>
@@ -71,4 +78,5 @@ function Todo({ userId, completed, id, title }) {
 
 const element = <App />
 const container = document.getElementById('root')
+if (!container) throw new Error("Root container not found!")
 MyReact.render(element, container)
