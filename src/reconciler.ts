@@ -2,7 +2,13 @@ import { EffectTags } from "./constants"
 import { createDom, updateDom } from "./dom"
 import { runEffects } from "./hooks"
 import { state } from "./state"
-import type { Child, ComponentFunction, Fiber, MyReactElement } from "./types"
+import type {
+  Child,
+  ComponentFunction,
+  Fiber,
+  Key,
+  MyReactElement
+} from "./types"
 
 export function render(element: Child, container: HTMLElement | Text) {
   state.wipRoot = {
@@ -17,69 +23,6 @@ export function render(element: Child, container: HTMLElement | Text) {
   state.nextUnitOfWork = state.wipRoot
 }
 
-function commitRoot() {
-  if (!state.wipRoot || !state.deletions) return
-
-  state.deletions.forEach(commitWork)
-  commitWork(state.wipRoot.child ?? null)
-
-  runEffects()
-
-  state.currentRoot = state.wipRoot
-  state.wipRoot = null
-}
-
-function commitWork(fiber: Fiber | null) {
-  if (!fiber) return
-
-  let domParentFiber = fiber.parent
-  while (domParentFiber && !domParentFiber.dom) {
-    domParentFiber = domParentFiber.parent
-  }
-
-  if (!domParentFiber || !domParentFiber.dom) throw new Error("Cannot find a valid DOM parent");
-  const domParent = domParentFiber.dom
-
-  switch (fiber.effectTag) {
-    case EffectTags.place:
-      if (fiber.dom !== null)
-        domParent.appendChild(fiber.dom as Node)
-      break
-
-    case EffectTags.update:
-      if (fiber.dom !== null)
-        updateDom(fiber.dom as HTMLElement, fiber.alternate!.props, fiber.props)
-      break
-
-    case EffectTags.delete:
-      commitDeletion(fiber, domParent)
-      return
-  }
-
-  commitWork(fiber.child ?? null)
-  commitWork(fiber.sibling ?? null)
-}
-
-function commitDeletion(fiber: Fiber | null, domParent: HTMLElement | Text) {
-  if (!fiber) return
-
-  if (fiber.hooks) {
-    fiber.hooks.forEach(hook => {
-      if (hook.tag === "effect" && hook.cleanup) hook.cleanup()
-    })
-  }
-
-  if (fiber.dom) {
-    domParent.removeChild(fiber.dom)
-  } else if (fiber.child) {
-    commitDeletion(fiber.child, domParent)
-  }
-
-  if (fiber.sibling) {
-    commitDeletion(fiber.sibling, domParent)
-  }
-}
-
 function workLoop(deadline: IdleDeadline) {
   let shouldYield = false
   while (state.nextUnitOfWork && !shouldYield) {
@@ -92,6 +35,7 @@ function workLoop(deadline: IdleDeadline) {
   requestIdleCallback(workLoop)
 }
 requestIdleCallback(workLoop)
+
 
 function performUnitOfWork(fiber: Fiber) {
   const isFunctionComponent = fiber.type instanceof Function
@@ -134,26 +78,120 @@ function updateHostComponent(fiber: Fiber) {
   reconcileChildren(fiber, children)
 }
 
+function commitRoot() {
+  if (!state.wipRoot || !state.deletions) return
+
+  state.deletions.forEach(commitWork)
+  commitWork(state.wipRoot.child ?? null)
+
+  runEffects()
+
+  state.currentRoot = state.wipRoot
+  state.wipRoot = null
+}
+
+function commitWork(fiber: Fiber | null) {
+  if (!fiber) return
+
+  let domParentFiber = fiber.parent
+  while (domParentFiber && !domParentFiber.dom) {
+    domParentFiber = domParentFiber.parent
+  }
+
+  if (!domParentFiber || !domParentFiber.dom) throw new Error("Cannot find a valid DOM parent");
+  const domParent = domParentFiber.dom
+
+  switch (fiber.effectTag) {
+    case EffectTags.place:
+      if (fiber.dom !== null)
+        domParent.appendChild(fiber.dom as Node)
+      break
+
+    case EffectTags.update:
+      if (fiber.dom !== null)
+        updateDom(fiber.dom as HTMLElement, fiber.alternate!.props, fiber.props)
+
+      if (fiber.props.key) 
+        commitPlacement(fiber, domParent)
+      break
+
+    case EffectTags.delete:
+      commitDeletion(fiber, domParent)
+      return
+  }
+
+  commitWork(fiber.child ?? null)
+  commitWork(fiber.sibling ?? null)
+}
+
+function commitDeletion(fiber: Fiber | null, domParent: HTMLElement | Text) {
+  if (!fiber) return
+
+  if (fiber.hooks) {
+    fiber.hooks.forEach(hook => {
+      if (hook.tag === "effect" && hook.cleanup) hook.cleanup()
+    })
+  }
+
+  if (fiber.dom) {
+    domParent.removeChild(fiber.dom)
+  } else if (fiber.child) {
+    commitDeletion(fiber.child, domParent)
+  }
+
+  if (fiber.sibling) {
+    commitDeletion(fiber.sibling, domParent)
+  }
+}
+
+function commitPlacement(fiber: Fiber | null, domParent: HTMLElement | Text) {
+  if (!fiber) return
+
+  if (fiber.dom) {
+    domParent.appendChild(fiber.dom)
+  } else {
+    let child = fiber.child
+    while (child) {
+      commitPlacement(child, domParent)
+      child = child.sibling
+    }
+  }
+}
+
 function reconcileChildren(wipFiber: Fiber, elements: MyReactElement[]) {
-  let index = 0
+  const existingChildren = new Map<Key, Fiber>()
   let oldFiber = wipFiber.alternate && wipFiber.alternate.child
+  let indexForKey = 0
+
+  while (oldFiber != null) {
+    const key = oldFiber.props.key ?? indexForKey
+    existingChildren.set(key, oldFiber)
+    oldFiber = oldFiber.sibling
+    indexForKey++
+  }
+
+  let index = 0
   let prevSibling: Fiber | null = null
 
-  while (index < elements.length || oldFiber != null) {
+  while (index < elements.length) {
     const element = elements[index]
+    const key = element?.props.key ?? index
+
+    const matchedFiber = existingChildren.get(key)
     let newFiber: Fiber | null = null
 
-    const sameType = oldFiber && element && element.type === oldFiber.type
+    const sameType = matchedFiber && element && element.type === matchedFiber.type
 
     if (sameType) {
       newFiber = {
         type: element.type,
         props: element.props,
         parent: wipFiber,
-        dom: oldFiber!.dom ?? null,
-        alternate: oldFiber ?? null,
+        dom: matchedFiber!.dom ?? null,
+        alternate: matchedFiber ?? null,
         effectTag: EffectTags.update,
       }
+      existingChildren.delete(key)
     }
 
     if (element && !sameType) {
@@ -165,15 +203,6 @@ function reconcileChildren(wipFiber: Fiber, elements: MyReactElement[]) {
         alternate: null,
         effectTag: EffectTags.place,
       }
-    }
-
-    if (oldFiber && !sameType) {
-      oldFiber.effectTag = EffectTags.delete
-      state.deletions!.push(oldFiber)
-    }
-
-    if (oldFiber) {
-      oldFiber = oldFiber.sibling
     }
 
     if (newFiber) {
@@ -188,4 +217,9 @@ function reconcileChildren(wipFiber: Fiber, elements: MyReactElement[]) {
 
     index++
   }
+
+  existingChildren.forEach((fiberToDelete) => {
+    fiberToDelete.effectTag = EffectTags.delete
+    state.deletions?.push(fiberToDelete)
+  })
 }

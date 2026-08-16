@@ -11,9 +11,11 @@ function App() {
       <h2>Current Tab: {tab}</h2>
       <button onClick={() => setTab("counter")}>Counter</button>
       <button onClick={() => setTab("todos")}>Todos</button>
+      <button onClick={() => setTab("keys")}>Keys Demo</button>
 
       {tab === "counter" && <Counter />}
       {tab === "todos" && <Todos />}
+      {tab === "keys" && <KeysDemo />}
     </div>
   )
 }
@@ -52,7 +54,7 @@ function Todos() {
       <h1>Todos</h1>
       {todos.map((todo) => (
         <Todo
-          // key={todo.id} ??? 
+          key={todo.id} 
           {...todo}
         />
       ))}
@@ -73,6 +75,43 @@ function Todo({ userId, completed, id, title }: TodoProps) {
       <h1>{title}</h1>
       <p>{completed ? "Completed" : "Not completed"}</p>
     </div>
+  )
+}
+
+function KeysDemo() {
+  const [items, setItems] = MyReact.useState(["A", "B", "C", "D"])
+
+  const shuffle = () => {
+    setItems((prev: string[]) => {
+      const newItems = [...prev]
+      newItems.sort(() => Math.random() - 0.5)
+      return newItems
+    })
+  }
+
+  return (
+    <div>
+      <h1>Keys Demo (Shuffle)</h1>
+      <button onClick={shuffle}>Shuffle Items!</button>
+      <ul>
+        {items.map((item) => (
+          <ItemWithState key={item} item={item} />
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function ItemWithState({ item }: { item: string }) {
+  const [clicks, setClicks] = MyReact.useState(0)
+  
+  return (
+    <li style={{ border: "1px solid gray", padding: "5px", margin: "5px" }}>
+      Item <b>{item}</b> - Clicks: {clicks}
+      <button onClick={() => setClicks(c => c + 1)} style={{ marginLeft: "10px" }}>
+        Click me!
+      </button>
+    </li>
   )
 }
 

@@ -2,7 +2,9 @@ export type ComponentFunction = (props: any) => MyReactElement
 export type ElementType = string | ComponentFunction;
 export type Child = MyReactElement | string | number | boolean | null | undefined;
 export type Children = { children?: Child[]; }
-export type Props = Record<string, unknown> & Children;
+export type Key = string | number;
+export type KeyedChildren = { key?: Key; }
+export type Props = Record<string, unknown> & Children & KeyedChildren;
 
 export type EffectTag = "UPDATE" | "PLACEMENT" | "DELETION";
 
@@ -47,6 +49,9 @@ declare global {
     interface Element extends MyReactElement {}
     interface IntrinsicElements {
       [elemName: string]: any;
+    }
+    interface IntrinsicAttributes {
+      key?: Key;
     }
   }
 }
