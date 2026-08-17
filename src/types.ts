@@ -1,5 +1,5 @@
 export type ComponentFunction = (props: any) => MyReactElement
-export type ElementType = string | ComponentFunction;
+export type ElementType = string | ComponentFunction | Symbol;
 export type Child = MyReactElement | string | number | boolean | null | undefined;
 export type Children = { children?: Child[]; }
 export type Key = string | number;
@@ -32,14 +32,13 @@ export interface StateHook<T = any> {
 }
 
 export type DependencyArray = any[];
-export interface EffectHook<T = any> {
+export interface EffectHook {
   tag: "effect",
   deps: DependencyArray,
   effect: () => (() => void) | void,
   cleanup?: null | (() => void);
   hasChanged: boolean,
 }
-
 
 export type Hook = StateHook | EffectHook;
 

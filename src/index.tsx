@@ -9,9 +9,11 @@ function App() {
       <h1>Hello from the <b>MyReact</b> functional component!</h1>
 
       <h2>Current Tab: {tab}</h2>
-      <button onClick={() => setTab("counter")}>Counter</button>
-      <button onClick={() => setTab("todos")}>Todos</button>
-      <button onClick={() => setTab("keys")}>Keys Demo</button>
+      <>
+        <button onClick={() => setTab("counter")}>Counter</button>
+        <button onClick={() => setTab("todos")}>Todos</button>
+        <button onClick={() => setTab("keys")}>Keys Demo</button>
+      </>
 
       {tab === "counter" && <Counter />}
       {tab === "todos" && <Todos />}
@@ -50,7 +52,7 @@ function Todos() {
   }, [])
 
   return (
-    <div>
+    <>
       <h1>Todos</h1>
       {todos.map((todo) => (
         <Todo
@@ -58,7 +60,7 @@ function Todos() {
           {...todo}
         />
       ))}
-    </div>
+    </>
   )
 }
 
@@ -69,7 +71,7 @@ interface TodoProps {
   title: string;
 }
 
-function Todo({ userId, completed, id, title }: TodoProps) {
+function Todo({ completed, title }: TodoProps) {
   return (
     <div style={{ border: "1px solid black", margin: "5px" }}>
       <h1>{title}</h1>
@@ -90,7 +92,7 @@ function KeysDemo() {
   }
 
   return (
-    <div>
+    <>
       <h1>Keys Demo (Shuffle)</h1>
       <button onClick={shuffle}>Shuffle Items!</button>
       <ul>
@@ -98,7 +100,7 @@ function KeysDemo() {
           <ItemWithState key={item} item={item} />
         ))}
       </ul>
-    </div>
+    </>
   )
 }
 

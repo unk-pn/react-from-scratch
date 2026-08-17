@@ -1,6 +1,7 @@
 import { EffectTags } from "./constants"
 import { createDom, updateDom } from "./dom"
 import { runEffects } from "./hooks"
+import MyReact from "./MyReact"
 import { state } from "./state"
 import type {
   Child,
@@ -25,6 +26,7 @@ export function render(element: Child, container: HTMLElement | Text) {
 
 function workLoop(deadline: IdleDeadline) {
   let shouldYield = false
+
   while (state.nextUnitOfWork && !shouldYield) {
     state.nextUnitOfWork = performUnitOfWork(state.nextUnitOfWork) ?? null
     shouldYield = deadline.timeRemaining() < 1
@@ -39,9 +41,12 @@ requestIdleCallback(workLoop)
 
 function performUnitOfWork(fiber: Fiber) {
   const isFunctionComponent = fiber.type instanceof Function
+  const isFragment = fiber.type === MyReact.Fragment
 
   if (isFunctionComponent) {
     updateFunctionComponent(fiber)
+  } else if (isFragment) {
+    updateFragmentComponent(fiber)
   } else {
     updateHostComponent(fiber)
   }
@@ -63,6 +68,16 @@ function updateFunctionComponent(fiber: Fiber) {
   state.wipFiber.hooks = []
 
   const children = [(fiber.type as ComponentFunction)(fiber.props)]
+  reconcileChildren(fiber, children)
+}
+
+function updateFragmentComponent(fiber: Fiber) {
+  let children: MyReactElement[] = []
+
+  if (fiber.props && fiber.props.children) {
+    children = fiber.props.children as MyReactElement[]
+  }
+
   reconcileChildren(fiber, children)
 }
 
