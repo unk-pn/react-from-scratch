@@ -132,7 +132,13 @@ function commitWork(fiber: Fiber | null) {
 
   switch (fiber.effectTag) {
     case EffectTags.place:
-      if (fiber.dom !== null) domParent.appendChild(fiber.dom as Node)
+      if (fiber.dom !== null) {
+        domParent.appendChild(fiber.dom as Node)
+
+        if (fiber.props.ref) {
+          fiber.props.ref.current = fiber.dom
+        }
+      }
       break
 
     case EffectTags.update:
@@ -159,6 +165,8 @@ function commitDeletion(fiber: Fiber | null, domParent: HTMLElement | Text) {
       if (hook.tag === 'effect' && hook.cleanup) hook.cleanup()
     })
   }
+
+  if (fiber.props.ref) fiber.props.ref.current = null
 
   if (fiber.dom) {
     domParent.removeChild(fiber.dom)

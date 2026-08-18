@@ -107,3 +107,8 @@ function collectEffects(fiber: Fiber | null, effects: EffectHook[]) {
   if (fiber.child) collectEffects(fiber.child, effects)
   if (fiber.sibling) collectEffects(fiber.sibling, effects)
 }
+
+export function useRef<T>(initialValue: T) {
+  const [ref] = useState({ current: initialValue })
+  return ref
+}

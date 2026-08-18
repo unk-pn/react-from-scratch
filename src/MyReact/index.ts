@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { createElement } from './createElement'
 import { useState, useEffect } from './hooks'
 import { render } from './reconciler'
@@ -20,6 +21,7 @@ const MyReact = {
   useEffect,
   Fragment,
   StrictMode,
+  useRef,
 }
 
 export default MyReact

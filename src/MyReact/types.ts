@@ -5,7 +5,12 @@ export type Child =
 export type Children = { children?: Child[] }
 export type Key = string | number
 export type KeyedChildren = { key?: Key }
-export type Props = Record<string, unknown> & Children & KeyedChildren
+export type Ref = { current: any } | null
+export type RefChildren = { ref?: Ref }
+export type Props = Record<string, unknown> &
+  Children &
+  KeyedChildren &
+  RefChildren
 
 export type EffectTag = 'UPDATE' | 'PLACEMENT' | 'DELETION'
 
@@ -53,6 +58,7 @@ declare global {
     }
     interface IntrinsicAttributes {
       key?: Key
+      ref?: { current: any }
     }
   }
 }
