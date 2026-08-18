@@ -9,7 +9,9 @@ import { render } from './reconciler'
 // and if `fiber.type` will be also be `undefined`
 // like if we have a typo or non-existing component
 // then the comparison will return `true`
-const Fragment = Symbol('FRAGMENT')
+const Fragment = Symbol('FRAGMENT') as any
+
+const StrictMode = Symbol('STRICT_MODE') as any
 
 const MyReact = {
   createElement,
@@ -17,6 +19,7 @@ const MyReact = {
   useState,
   useEffect,
   Fragment,
+  StrictMode,
 }
 
 export default MyReact

@@ -24,6 +24,7 @@ export interface Fiber {
   alternate?: Fiber | null
   effectTag?: EffectTag
   hooks?: Hook[]
+  isStrict?: boolean | undefined
 }
 
 export interface StateHook<T = any> {
@@ -39,6 +40,7 @@ export interface EffectHook {
   effect: () => (() => void) | void
   cleanup?: null | (() => void)
   hasChanged: boolean
+  isStrict?: boolean | undefined
 }
 
 export type Hook = StateHook | EffectHook

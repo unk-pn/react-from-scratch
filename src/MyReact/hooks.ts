@@ -65,6 +65,7 @@ export function useEffect(
     effect: callback,
     cleanup: null,
     hasChanged,
+    isStrict: state.wipFiber.isStrict,
   }
 
   if (hasChanged) {
@@ -81,9 +82,14 @@ export function runEffects() {
   const effects: EffectHook[] = []
   collectEffects(state.wipRoot, effects)
 
-  effects.forEach((effect) => {
-    if (effect.cleanup) effect.cleanup()
-    effect.cleanup = effect.effect() ?? null
+  effects.forEach((hook) => {
+    if (hook.isStrict) {
+      const cleanup = hook.effect()
+      if (cleanup) cleanup()
+    }
+
+    if (hook.cleanup) hook.cleanup()
+    hook.cleanup = hook.effect() ?? null
   })
 }
 

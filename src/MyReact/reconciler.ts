@@ -40,7 +40,14 @@ requestIdleCallback(workLoop)
 
 function performUnitOfWork(fiber: Fiber) {
   const isFunctionComponent = fiber.type instanceof Function
-  const isFragment = fiber.type === MyReact.Fragment
+  const isStrictMode = fiber.type === MyReact.StrictMode
+  const isFragment = fiber.type === MyReact.Fragment || isStrictMode
+  // We are checking for StrictMode bc it doesnt have a dom node
+  // (just like Fragment) but we still want to render its children
+
+  if (isStrictMode) {
+    fiber.isStrict = true
+  }
 
   if (isFunctionComponent) {
     updateFunctionComponent(fiber)
@@ -65,7 +72,16 @@ function updateFunctionComponent(fiber: Fiber) {
   state.hookIdx = 0
   state.wipFiber.hooks = []
 
-  const children = [(fiber.type as ComponentFunction)(fiber.props)]
+  const componentFn = fiber.type as ComponentFunction
+
+  if (fiber.isStrict) {
+    componentFn(fiber.props)
+
+    state.hookIdx = 0
+    state.wipFiber.hooks = []
+  }
+
+  const children = [componentFn(fiber.props)]
   reconcileChildren(fiber, children)
 }
 
@@ -202,6 +218,7 @@ function reconcileChildren(wipFiber: Fiber, elements: MyReactElement[]) {
         dom: matchedFiber!.dom ?? null,
         alternate: matchedFiber ?? null,
         effectTag: EffectTags.update,
+        isStrict: wipFiber.isStrict,
       }
       existingChildren.delete(key)
     }
@@ -214,6 +231,7 @@ function reconcileChildren(wipFiber: Fiber, elements: MyReactElement[]) {
         dom: null,
         alternate: null,
         effectTag: EffectTags.place,
+        isStrict: wipFiber.isStrict,
       }
     }
 
