@@ -1,6 +1,5 @@
-import { useRef } from 'react'
 import { createElement } from './createElement'
-import { useState, useEffect } from './hooks'
+import { useState, useEffect, useRef, useMemo, useCallback } from './hooks'
 import { render } from './reconciler'
 
 // We need this bc babel will transpile `<>` to `<MyReact.Fragment>`,
@@ -22,6 +21,8 @@ const MyReact = {
   Fragment,
   StrictMode,
   useRef,
+  useMemo,
+  useCallback,
 }
 
 export default MyReact

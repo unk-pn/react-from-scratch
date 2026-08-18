@@ -48,7 +48,13 @@ export interface EffectHook {
   isStrict?: boolean | undefined
 }
 
-export type Hook = StateHook | EffectHook
+export interface MemoHook<T = any> {
+  tag: 'memo'
+  value: T
+  deps: DependencyArray
+}
+
+export type Hook = StateHook | EffectHook | MemoHook
 
 declare global {
   namespace JSX {
