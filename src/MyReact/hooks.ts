@@ -1,43 +1,41 @@
-import { state } from './state';
-import type { DependencyArray, EffectHook, Fiber, StateHook } from './types';
+import { state } from './state'
+import type { DependencyArray, EffectHook, Fiber, StateHook } from './types'
 
-// useState 
-export function useState<T>(initial: T): [T, (action: T | ((state: T) => T)) => void] {
-  if (!state.wipFiber) throw new Error("Hooks can only be called inside a functional component!")
+// useState
+export function useState<T>(
+  initial: T
+): [T, (action: T | ((state: T) => T)) => void] {
+  if (!state.wipFiber)
+    throw new Error('Hooks can only be called inside a functional component!')
 
-  const oldHook = (
-    state.wipFiber.alternate &&
+  const oldHook = (state.wipFiber.alternate &&
     state.wipFiber.alternate.hooks &&
-    state.wipFiber.alternate.hooks[state.hookIdx]
-  ) as StateHook | undefined
-  
+    state.wipFiber.alternate.hooks[state.hookIdx]) as StateHook | undefined
+
   const hook: StateHook = {
-    tag: "state",
+    tag: 'state',
     state: oldHook ? oldHook.state : initial,
-    queue: []
+    queue: [],
   }
 
   const actions = oldHook ? oldHook.queue : []
-  actions.forEach(action => 
-    hook.state = action(hook.state)
-  )
+  actions.forEach((action) => (hook.state = action(hook.state)))
 
   function setState(action: any) {
-    const nextAction = typeof action === "function" ? action : () => action
+    const nextAction = typeof action === 'function' ? action : () => action
 
-    if (!state.currentRoot) throw new Error("No current root fiber found!")
+    if (!state.currentRoot) throw new Error('No current root fiber found!')
 
     hook.queue.push(nextAction)
     state.wipRoot = {
       dom: state.currentRoot.dom ?? null,
       props: state.currentRoot.props,
-      alternate: state.currentRoot
+      alternate: state.currentRoot,
     }
 
     state.nextUnitOfWork = state.wipRoot
     state.deletions = []
   }
-
 
   state.wipFiber.hooks!.push(hook)
   state.hookIdx++
@@ -46,22 +44,23 @@ export function useState<T>(initial: T): [T, (action: T | ((state: T) => T)) => 
 
 // useEffect
 
-export function useEffect(callback: EffectHook["effect"], deps: DependencyArray) {
-  if (!state.wipFiber) throw new Error("Hooks can only be called inside a functional component!")
+export function useEffect(
+  callback: EffectHook['effect'],
+  deps: DependencyArray
+) {
+  if (!state.wipFiber)
+    throw new Error('Hooks can only be called inside a functional component!')
 
-  const oldHook = ( 
-    state.wipFiber.alternate &&
+  const oldHook = (state.wipFiber.alternate &&
     state.wipFiber.alternate.hooks &&
-    state.wipFiber.alternate.hooks[state.hookIdx]
-  ) as EffectHook | undefined
+    state.wipFiber.alternate.hooks[state.hookIdx]) as EffectHook | undefined
 
   const oldDeps = oldHook ? oldHook.deps : undefined
   const hasChanged =
-    !oldDeps ||
-    deps.some((dep, index) => dep !== oldDeps[index])
-  
+    !oldDeps || deps.some((dep, index) => dep !== oldDeps[index])
+
   const hook: EffectHook = {
-    tag: "effect",
+    tag: 'effect',
     deps,
     effect: callback,
     cleanup: null,
@@ -82,9 +81,9 @@ export function runEffects() {
   const effects: EffectHook[] = []
   collectEffects(state.wipRoot, effects)
 
-  effects.forEach(effect => {
+  effects.forEach((effect) => {
     if (effect.cleanup) effect.cleanup()
-      effect.cleanup = effect.effect() ?? null
+    effect.cleanup = effect.effect() ?? null
   })
 }
 
@@ -92,8 +91,8 @@ function collectEffects(fiber: Fiber | null, effects: EffectHook[]) {
   if (!fiber) return
 
   if (fiber.hooks) {
-    fiber.hooks.forEach(hook => {
-      if (hook.tag === "effect" && hook.hasChanged) {
+    fiber.hooks.forEach((hook) => {
+      if (hook.tag === 'effect' && hook.hasChanged) {
         effects.push(hook)
       }
     })

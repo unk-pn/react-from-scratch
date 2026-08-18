@@ -1,21 +1,21 @@
-import { EffectTags } from "./constants"
-import { createDom, updateDom } from "./dom"
-import { runEffects } from "./hooks"
-import MyReact from "./MyReact"
-import { state } from "./state"
+import { EffectTags } from './constants'
+import { createDom, updateDom } from './dom'
+import { runEffects } from './hooks'
+import MyReact from '.'
+import { state } from './state'
 import type {
   Child,
   ComponentFunction,
   Fiber,
   Key,
-  MyReactElement
-} from "./types"
+  MyReactElement,
+} from './types'
 
 export function render(element: Child, container: HTMLElement | Text) {
   state.wipRoot = {
     dom: container,
     props: {
-      children: [element]
+      children: [element],
     },
     alternate: state.currentRoot,
   }
@@ -38,7 +38,6 @@ function workLoop(deadline: IdleDeadline) {
 }
 requestIdleCallback(workLoop)
 
-
 function performUnitOfWork(fiber: Fiber) {
   const isFunctionComponent = fiber.type instanceof Function
   const isFragment = fiber.type === MyReact.Fragment
@@ -51,12 +50,11 @@ function performUnitOfWork(fiber: Fiber) {
     updateHostComponent(fiber)
   }
 
-  if (fiber.child) return fiber.child 
+  if (fiber.child) return fiber.child
 
   let nextFiber: Fiber | null = fiber
   while (nextFiber) {
-    if (nextFiber.sibling)
-      return nextFiber.sibling
+    if (nextFiber.sibling) return nextFiber.sibling
 
     nextFiber = nextFiber.parent ?? null
   }
@@ -87,8 +85,7 @@ function updateHostComponent(fiber: Fiber) {
     children = fiber.props.children as MyReactElement[]
   }
 
-  if (!fiber.dom)
-    fiber.dom = createDom(fiber)
+  if (!fiber.dom) fiber.dom = createDom(fiber)
 
   reconcileChildren(fiber, children)
 }
@@ -113,21 +110,20 @@ function commitWork(fiber: Fiber | null) {
     domParentFiber = domParentFiber.parent
   }
 
-  if (!domParentFiber || !domParentFiber.dom) throw new Error("Cannot find a valid DOM parent");
+  if (!domParentFiber || !domParentFiber.dom)
+    throw new Error('Cannot find a valid DOM parent')
   const domParent = domParentFiber.dom
 
   switch (fiber.effectTag) {
     case EffectTags.place:
-      if (fiber.dom !== null)
-        domParent.appendChild(fiber.dom as Node)
+      if (fiber.dom !== null) domParent.appendChild(fiber.dom as Node)
       break
 
     case EffectTags.update:
       if (fiber.dom !== null)
         updateDom(fiber.dom as HTMLElement, fiber.alternate!.props, fiber.props)
 
-      if (fiber.props.key) 
-        commitPlacement(fiber, domParent)
+      if (fiber.props.key) commitPlacement(fiber, domParent)
       break
 
     case EffectTags.delete:
@@ -143,8 +139,8 @@ function commitDeletion(fiber: Fiber | null, domParent: HTMLElement | Text) {
   if (!fiber) return
 
   if (fiber.hooks) {
-    fiber.hooks.forEach(hook => {
-      if (hook.tag === "effect" && hook.cleanup) hook.cleanup()
+    fiber.hooks.forEach((hook) => {
+      if (hook.tag === 'effect' && hook.cleanup) hook.cleanup()
     })
   }
 
@@ -195,7 +191,8 @@ function reconcileChildren(wipFiber: Fiber, elements: MyReactElement[]) {
     const matchedFiber = existingChildren.get(key)
     let newFiber: Fiber | null = null
 
-    const sameType = matchedFiber && element && element.type === matchedFiber.type
+    const sameType =
+      matchedFiber && element && element.type === matchedFiber.type
 
     if (sameType) {
       newFiber = {
