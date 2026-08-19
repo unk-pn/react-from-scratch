@@ -43,7 +43,7 @@ function performUnitOfWork(fiber: Fiber) {
   const isFunctionComponent = fiber.type instanceof Function
   const isStrictMode = fiber.type === MyReact.StrictMode
   const isFragment = fiber.type === MyReact.Fragment || isStrictMode
-  // We are checking for StrictMode bc it doesnt have a dom node
+  // We are checking for StrictMode bc it doesn't have a dom node
   // (just like Fragment) but we still want to render its children
 
   if (isStrictMode) {
