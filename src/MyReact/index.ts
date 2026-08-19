@@ -1,5 +1,6 @@
 import { createElement } from './createElement'
 import { useState, useEffect, useRef, useMemo, useCallback } from './hooks'
+import { memo } from './memo'
 import { render } from './reconciler'
 
 // We need this bc babel will transpile `<>` to `<MyReact.Fragment>`,
@@ -23,6 +24,7 @@ const MyReact = {
   useRef,
   useMemo,
   useCallback,
+  memo,
 }
 
 export default MyReact

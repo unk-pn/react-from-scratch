@@ -6,22 +6,28 @@ export function createElement(
   props?: Props | null,
   ...children: Child[]
 ) {
+  const finalProps = { ...props }
+
+  // Remove Babel hidden props
+  delete finalProps.__source
+  delete finalProps.__self
+
+  const newChildren = children
+    .flat()
+    .filter((child) => child !== null && child !== undefined && child !== false)
+    .map((child) =>
+      typeof child === 'object' ? child : createTextElement(String(child))
+    )
+
+  if (newChildren.length > 0) {
+    finalProps.children = newChildren
+  }
+
   return {
     type,
-    props: {
-      ...props,
-      children: children
-        .flat()
-        .filter(
-          (child) => child !== null && child !== undefined && child !== false
-        )
-        .map((child) =>
-          typeof child === 'object' ? child : createTextElement(String(child))
-        ),
-    },
+    props: finalProps,
   }
 }
-
 function createTextElement(text: string) {
   return {
     type: ElementTypes.text,

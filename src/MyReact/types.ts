@@ -1,16 +1,17 @@
-export type ComponentFunction = (props: any) => MyReactElement
+export type ComponentFunction = {
+  (props: any): MyReactElement
+  isMemo?: boolean
+}
 export type ElementType = string | ComponentFunction | Symbol
 export type Child =
   MyReactElement | string | number | boolean | null | undefined
-export type Children = { children?: Child[] }
 export type Key = string | number
-export type KeyedChildren = { key?: Key }
 export type Ref = { current: any } | null
-export type RefChildren = { ref?: Ref }
-export type Props = Record<string, unknown> &
-  Children &
-  KeyedChildren &
-  RefChildren
+export type Props = Record<string, unknown> & {
+  children?: Child[]
+  key?: Key
+  ref?: Ref
+}
 
 export type EffectTag = 'UPDATE' | 'PLACEMENT' | 'DELETION'
 
@@ -27,7 +28,7 @@ export interface Fiber {
   sibling?: Fiber | null
   dom?: HTMLElement | Text | null | undefined
   alternate?: Fiber | null
-  effectTag?: EffectTag
+  effectTag?: EffectTag | undefined
   hooks?: Hook[]
   isStrict?: boolean | undefined
 }

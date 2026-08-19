@@ -10,6 +10,7 @@ import type {
   Key,
   MyReactElement,
 } from './types'
+import { shallowEqual } from './helpers'
 
 export function render(element: Child, container: HTMLElement | Text) {
   state.wipRoot = {
@@ -73,6 +74,35 @@ function updateFunctionComponent(fiber: Fiber) {
   state.wipFiber.hooks = []
 
   const componentFn = fiber.type as ComponentFunction
+
+  if (
+    componentFn.isMemo &&
+    fiber.alternate &&
+    shallowEqual(fiber.props, fiber.alternate.props) // props has not changed
+  ) {
+    let oldChild = fiber.alternate.child
+    let prevSibling: Fiber | null = null
+
+    while (oldChild) {
+      const clonedChild: Fiber = {
+        ...oldChild,
+        parent: fiber,
+        alternate: oldChild,
+        effectTag: undefined,
+      }
+
+      if (prevSibling) {
+        prevSibling.sibling = clonedChild
+      } else {
+        fiber.child = clonedChild
+      }
+
+      prevSibling = clonedChild
+      oldChild = oldChild.sibling
+    }
+
+    return
+  }
 
   if (fiber.isStrict) {
     componentFn(fiber.props)
