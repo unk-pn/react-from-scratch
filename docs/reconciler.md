@@ -1,6 +1,6 @@
 ## `render`
 
-In `index.tsx` we have this code: 
+In [`index.tsx`](../src/index.tsx) we have this code: 
 
 ```jsx
 const element = (
